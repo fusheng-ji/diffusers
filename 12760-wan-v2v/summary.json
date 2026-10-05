@@ -1,0 +1,33 @@
+{
+  "base_sha": "cff9dafbbf493e2a08c6f1951fb2d8845da71841",
+  "model_revision": "0fad780a534b6463e45facd96134c9f345acfa5b",
+  "cache_disabled_bitwise_equal": true,
+  "cache_disabled_max_difference": 0.0,
+  "repeated_calls_bitwise_equal": {
+    "taylorseer": true,
+    "first_block": true,
+    "mag": true
+  },
+  "cached_difference_from_uncached": {
+    "taylorseer": {
+      "mean_absolute": 0.01660846173763275,
+      "max_absolute": 0.915650486946106
+    },
+    "first_block": {
+      "mean_absolute": 0.0,
+      "max_absolute": 0.0
+    },
+    "mag": {
+      "mean_absolute": 0.008474514819681644,
+      "max_absolute": 0.664219856262207
+    }
+  },
+  "input_sha256": "b3c34d4db5ad640711ec71dab405a0f6caaedb29a130953dd9543cdf2165bbaf",
+  "timing_note": "Single-run timings from concurrent validation, not a performance benchmark.",
+  "first_block_reuse": {
+    "threshold": 0.2,
+    "transformer_calls": 16,
+    "second_block_computations": 10,
+    "repeated_calls_bitwise_equal": true
+  }
+}

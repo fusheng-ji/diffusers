@@ -1,0 +1,19 @@
+source,case,cache_config,status,steps,transformer_calls,second_block_computations,contexts,pipeline_seconds,peak_allocated_gib,mp4_frames,mp4_fps,error
+baseline,nocache,None,passed,8,16,16,,5.334130274131894,22.450767993927002,33,8.0,
+baseline,taylorseer,"TaylorSeerCacheConfig(cache_interval=3, disable_cache_before_step=2, disable_cache_after_step=None, max_order=1, taylor_factors_dtype=torch.bfloat16, skip_predict_identifiers=None, cache_identifiers=['blocks\\.\\d+\\.attn[12]'], use_lite_mode=False)",error,0,1,0,unset,,20.28688097000122,,,"ValueError: No cache context is set. Wrap the denoiser call in `model.cache_context(name, ...)` before calling it."
+baseline,first_block,FirstBlockCacheConfig(threshold=0.05),error,0,1,0,unset,,20.28572702407837,,,"ValueError: No cache context is set. Wrap the denoiser call in `model.cache_context(name, ...)` before calling it."
+baseline,mag-calibration,"MagCacheConfig(threshold=0.06, max_skip_steps=3, retention_ratio=0.2, num_inference_steps=8, mag_ratios=None, calibrate=True)",passed,8,8,8,"inference,unset",2.912094349041581,22.48707103729248,33,8.0,
+baseline,mag,"MagCacheConfig(threshold=0.06, max_skip_steps=3, retention_ratio=0.2, num_inference_steps=8, mag_ratios=tensor([1.0000, 0.9528, 0.9466, 0.9317, 0.9146, 0.8976, 0.8587, 0.8124]), calibrate=False)",passed,8,16,14,"inference,unset",4.21297481097281,22.493666648864746,33,8.0,
+baseline,cache-disabled,None,passed,8,16,16,,4.611421562731266,22.4519624710083,33,8.0,
+fixed,nocache,None,passed,8,16,16,,6.025599434971809,22.450767993927002,33,8.0,
+fixed,taylorseer,"TaylorSeerCacheConfig(cache_interval=3, disable_cache_before_step=2, disable_cache_after_step=None, max_order=1, taylor_factors_dtype=torch.bfloat16, skip_predict_identifiers=None, cache_identifiers=['blocks\\.\\d+\\.attn[12]'], use_lite_mode=False)",passed,8,16,8,"cond,uncond",3.4243663754314184,32.09215259552002,33,8.0,
+fixed,taylorseer-repeat,"TaylorSeerCacheConfig(cache_interval=3, disable_cache_before_step=2, disable_cache_after_step=None, max_order=1, taylor_factors_dtype=torch.bfloat16, skip_predict_identifiers=None, cache_identifiers=['blocks\\.\\d+\\.attn[12]'], use_lite_mode=False)",passed,8,16,8,"cond,uncond",3.424458162859082,32.091715812683105,33,8.0,
+fixed,first_block,FirstBlockCacheConfig(threshold=0.05),passed,8,16,16,"cond,uncond",4.590307096019387,22.693490982055664,33,8.0,
+fixed,first_block-repeat,FirstBlockCacheConfig(threshold=0.05),passed,8,16,16,"cond,uncond",4.591643624007702,22.695219039916992,33,8.0,
+fixed,mag-calibration,"MagCacheConfig(threshold=0.06, max_skip_steps=3, retention_ratio=0.2, num_inference_steps=8, mag_ratios=None, calibrate=True)",passed,8,8,8,cond,2.9897718001157045,22.488447189331055,33,8.0,
+fixed,mag,"MagCacheConfig(threshold=0.06, max_skip_steps=3, retention_ratio=0.2, num_inference_steps=8, mag_ratios=tensor([1.0000, 0.9528, 0.9466, 0.9317, 0.9146, 0.8976, 0.8587, 0.8124]), calibrate=False)",passed,8,16,14,"cond,uncond",4.270389458164573,22.53281593322754,33,8.0,
+fixed,mag-repeat,"MagCacheConfig(threshold=0.06, max_skip_steps=3, retention_ratio=0.2, num_inference_steps=8, mag_ratios=tensor([1.0000, 0.9528, 0.9466, 0.9317, 0.9146, 0.8976, 0.8587, 0.8124]), calibrate=False)",passed,8,16,14,"cond,uncond",4.220826972275972,22.533252716064453,33,8.0,
+fixed,cache-disabled,None,passed,8,16,16,,4.612084923312068,22.45291519165039,33,8.0,
+fixed,first_block-cfg-off,FirstBlockCacheConfig(threshold=0.05),passed,8,8,8,cond,2.9754428546875715,22.5673885345459,33,8.0,
+fixed-reuse,first_block-reuse,FirstBlockCacheConfig(threshold=0.2),passed,8,16,10,"cond,uncond",3.980816226452589,22.69178056716919,33,8.0,
+fixed-reuse,first_block-reuse-repeat,FirstBlockCacheConfig(threshold=0.2),passed,8,16,10,"cond,uncond",3.414193941280246,22.69321918487549,33,8.0,
