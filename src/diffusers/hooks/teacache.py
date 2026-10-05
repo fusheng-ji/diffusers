@@ -407,7 +407,8 @@ class TeaCacheHook(ModelHook):
         """Reset state if inference run completed. Initialize num_steps on first timestep if not set."""
         # Reset if we've completed all steps (new inference run)
         if state.cnt == state.num_steps and state.num_steps > 0:
-            logger.debug("TeaCache: Inference run completed, resetting state")
+            if not torch.compiler.is_compiling():
+                logger.debug("TeaCache: Inference run completed, resetting state")
             state.reset()
 
         # Set or update num_steps on first timestep.
@@ -425,11 +426,14 @@ class TeaCacheHook(ModelHook):
 
             if new_num_steps is not None and new_num_steps != state.num_steps:
                 if state.num_steps > 0:
-                    logger.debug(f"TeaCache: num_steps changed {state.num_steps} -> {new_num_steps}, resetting state")
+                    if not torch.compiler.is_compiling():
+                        logger.debug(
+                            f"TeaCache: num_steps changed {state.num_steps} -> {new_num_steps}, resetting state"
+                        )
                     state.reset()
                 state.num_steps = new_num_steps
 
-            if state.num_steps > 0 and new_num_steps is not None:
+            if state.num_steps > 0 and new_num_steps is not None and not torch.compiler.is_compiling():
                 logger.debug(f"TeaCache: Using {state.num_steps} inference steps")
 
     def initialize_hook(self, module):

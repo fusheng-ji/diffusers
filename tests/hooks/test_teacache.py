@@ -16,7 +16,12 @@ import unittest
 
 import torch
 
-from diffusers import CogVideoXTransformer3DModel, Lumina2Transformer2DModel, MochiTransformer3DModel
+from diffusers import (
+    CogVideoXTransformer3DModel,
+    FluxTransformer2DModel,
+    Lumina2Transformer2DModel,
+    MochiTransformer3DModel,
+)
 from diffusers.hooks import HookRegistry, StateManager, TeaCacheConfig, apply_teacache
 from diffusers.hooks.teacache import TeaCacheHook, TeaCacheState, _get_model_config, _should_compute
 
@@ -204,6 +209,87 @@ class TeaCacheHookTests(unittest.TestCase):
             apply_teacache(module, config)
         self.assertIn("Unsupported model", str(context.exception))
         self.assertIn("UnsupportedModule", str(context.exception))
+
+
+class TeaCacheCompileTests(unittest.TestCase):
+    def test_flux_state_logging_does_not_break_compilation(self):
+        from torch._dynamo.utils import counters
+
+        for scenario in ("initial", "completed", "changed_steps"):
+            with self.subTest(scenario=scenario):
+                torch.manual_seed(0)
+                model = FluxTransformer2DModel(
+                    in_channels=4,
+                    num_layers=1,
+                    num_single_layers=1,
+                    attention_head_dim=16,
+                    num_attention_heads=2,
+                    joint_attention_dim=32,
+                    pooled_projection_dim=32,
+                    axes_dims_rope=[4, 4, 8],
+                ).eval()
+                inputs = {
+                    "hidden_states": torch.randn(1, 4, 4),
+                    "encoder_hidden_states": torch.randn(1, 4, 32),
+                    "pooled_projections": torch.randn(1, 32),
+                    "img_ids": torch.zeros(4, 3),
+                    "txt_ids": torch.zeros(4, 3),
+                    "timestep": torch.ones(1),
+                    "return_dict": False,
+                }
+                with torch.no_grad():
+                    expected = model(**inputs)[0]
+                config = TeaCacheConfig(rel_l1_thresh=0.2, coefficients=[0, 0, 0, 0, 1], num_inference_steps=2)
+                model.enable_cache(config)
+                hook = model._diffusers_hook.get_hook("teacache")
+                torch._dynamo.reset()
+                counters.clear()
+                try:
+                    with torch.no_grad(), model.cache_context("cond"):
+                        state = hook.state_manager.get_state()
+                        if scenario == "completed":
+                            model(**inputs)
+                            model(**inputs)
+                            self.assertEqual(state.cnt, 2)
+                        elif scenario == "changed_steps":
+                            model(**inputs)
+                            state.cnt = 0
+                            config.num_inference_steps = 3
+                        compiled = torch.compile(model, backend="eager", fullgraph=False)
+                        for _ in range(2):
+                            torch.testing.assert_close(compiled(**inputs)[0], expected)
+                        self.assertEqual(state.cnt, 2)
+                        self.assertEqual(state.num_steps, config.num_inference_steps)
+                    self.assertGreater(counters["stats"]["unique_graphs"], 0)
+                    logger_breaks = {
+                        reason: count
+                        for reason, count in counters["graph_break"].items()
+                        if "logger" in reason.lower()
+                    }
+                    self.assertEqual(logger_breaks, {})
+                finally:
+                    model.disable_cache()
+                    torch._dynamo.reset()
+                    counters.clear()
+
+    def test_state_transitions_preserve_eager_debug_logs(self):
+        hook = TeaCacheHook(TeaCacheConfig(num_inference_steps=2))
+        state = TeaCacheState()
+        model = _create_mochi_model()
+        with self.assertLogs("diffusers.hooks.teacache", level="DEBUG") as logs:
+            hook._maybe_reset_state_for_new_inference(state, model)
+            self.assertEqual(state.num_steps, 2)
+            state.cnt = 2
+            state.previous_residual = torch.ones(1)
+            hook._maybe_reset_state_for_new_inference(state, model)
+            self.assertEqual(state.cnt, 0)
+            self.assertIsNone(state.previous_residual)
+            hook.config.num_inference_steps = 3
+            hook._maybe_reset_state_for_new_inference(state, model)
+            self.assertEqual(state.num_steps, 3)
+        self.assertTrue(any("Using 2 inference steps" in message for message in logs.output))
+        self.assertTrue(any("Inference run completed" in message for message in logs.output))
+        self.assertTrue(any("num_steps changed 2 -> 3" in message for message in logs.output))
 
 
 class TeaCacheMultiModelTests(unittest.TestCase):
